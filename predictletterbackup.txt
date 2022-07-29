@@ -1,0 +1,124 @@
+from tensorflow.keras.utils import img_to_array, load_img 
+import keras
+from keras import applications 
+import cv2
+import imutils
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+space={0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: 'A', 11: 'B', 12: 'C', 13: 'D', 14: 'E', 15: 'F', 16: 'G', 17: 'H', 18: 'I', 19: 'J', 20: 'K', 21: 'L', 22: 'M', 23: 'N', 24: 'O', 25: 'P', 26: 'Q', 27: 'R', 28: 'S', 29: 'T', 30: 'U', 31: 'V', 32: 'W', 33: 'X', 34: 'Y', 35: 'Z'}
+vgg16 = applications.VGG16(include_top=False, weights="imagenet")
+model=keras.models.load_model("CNNmodel")
+model.load_weights('cnn_best_model.h5')
+
+# temp=cv2.imread("D:\\iScream\\tfod\\Tensorflow\\workspace\\images\\training_set\\0\\31.jpg")
+# temp_gray = cv2.cvtColor(temp, cv2.COLOR_BGR2GRAY)
+# temp_gray=imageEnhance(temp_gray)
+# plt.imshow(temp_gray, cmap="gray")
+
+def imageEnhance(img_gray):
+    for i in range(0,img_gray.shape[0]):
+        for j in range(0,img_gray.shape[1]):       
+            if img_gray[i][j]>=230 and img_gray[i][j]<240 :
+                img_gray[i][j]=img_gray[i][j]+10
+                
+            elif img_gray[i][j]>=220 and img_gray[i][j]<230 :
+                img_gray[i][j]=img_gray[i][j]+20
+                
+            elif img_gray[i][j]>=210 and img_gray[i][j]<220 :
+                img_gray[i][j]=img_gray[i][j]+30
+                
+            elif img_gray[i][j]>=200 and img_gray[i][j]<210 :
+                img_gray[i][j]=img_gray[i][j]+40
+                
+            elif img_gray[i][j]>=190 and img_gray[i][j]<200 :
+                img_gray[i][j]=img_gray[i][j]+50
+                
+            elif img_gray[i][j]>=180 and img_gray[i][j]<190 :
+                img_gray[i][j]=img_gray[i][j]+60
+                
+            # elif img_gray[i][j]>=170 and img_gray[i][j]<180 :
+            #     img_gray[i][j]=img_gray[i][j]+70
+    
+            # elif img_gray[i][j]>=160 and img_gray[i][j]<170 :
+            #     img_gray[i][j]=img_gray[i][j]+80
+        
+            # elif img_gray[i][j]>=150 and img_gray[i][j]<160 :
+            #     img_gray[i][j]=img_gray[i][j]+90
+            
+            # elif img_gray[i][j]>=140 and img_gray[i][j]<150 :
+            #     img_gray[i][j]=img_gray[i][j]+100               
+            elif img_gray[i][j]<148:
+                img_gray[i][j]=0
+    for i in range(0,img_gray.shape[0]):
+        for j in range(0,img_gray.shape[1]):       
+            if img_gray[i][j]!=0:
+                img_gray[i][j]=255
+    return img_gray
+
+
+
+def findContours(cnts, method="left-to-right"):
+    reverse = False
+    i = 0
+    if method == "right-to-left" or method == "bottom-to-top":
+        reverse = True
+    if method == "top-to-bottom" or method == "bottom-to-top":
+        i = 1
+    boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+    (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
+    key=lambda b:b[1][i], reverse=reverse))
+    # return the list of sorted contours and bounding boxes
+    return (cnts, boundingBoxes)
+
+
+def scanLetters(img_gray):
+    #count=0
+    letters = []
+    gray = img_gray
+    ret,thresh1 = cv2.threshold(gray ,127,255,cv2.THRESH_BINARY_INV)
+    dilated = cv2.dilate(thresh1, None, iterations=2)
+
+    cnts = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    cnts = findContours(cnts, method="left-to-right")[0]
+    # loop over the contours
+    for c in cnts:
+        if cv2.contourArea(c) > 10:
+            (x, y, w, h) = cv2.boundingRect(c)
+            cv2.rectangle(gray, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        roi = gray[y+3:y + h-3, x+3:x + w-2]       
+        roi=cv2.cvtColor(roi, cv2.COLOR_GRAY2BGR)
+        roi = cv2.copyMakeBorder(roi, 5, 5, 5, 5, cv2.BORDER_CONSTANT, None, value = (255,255,255))
+        thresh = cv2.resize(roi, (256, 256))
+        #cv2.imwrite(str(count+1)+'.jpg',thresh)
+        #count=count+1
+        image = img_to_array(thresh)
+        image = np.expand_dims(image, axis=0)
+        image /= 255. 
+        bt_prediction = vgg16.predict(image)        
+        preds = model.predict(bt_prediction)    
+        preds=preds.argmax()
+        letters.append(preds)
+    return  letters
+
+def analyzeImage(imagepath):
+    image = cv2.imread(imagepath)
+    img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    img_gray=imageEnhance(img_gray)
+    plt.imshow(image,cmap='gray')
+    plt.imshow(img_gray,cmap='gray')
+    try:
+        listis = scanLetters(img_gray)
+        #plt.imshow(listis,cmap="gray")
+    except:
+        print("failed")
+
+    l=list((pd.Series(listis)).map(space))
+    l = ''.join([str(elem) for elem in l])
+    print("\n----------------\n"+"||--"+l+"--||"+"\n----------------")
+    return l
+
+
+letter=analyzeImage("C:\\Users\\Dev1\\Desktop\\saved\\test1.jpg")

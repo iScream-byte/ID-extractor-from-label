@@ -1,0 +1,26 @@
+<annotation>
+	<folder>ID</folder>
+	<filename>ID.c8aa4002-01af-11ed-8e01-b42e99437d2b.jpg</filename>
+	<path>D:\iScream\tfod\Tensorflow\workspace\images\collectedimages\ID\ID.c8aa4002-01af-11ed-8e01-b42e99437d2b.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>ID</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>160</xmin>
+			<ymin>150</ymin>
+			<xmax>409</xmax>
+			<ymax>206</ymax>
+		</bndbox>
+	</object>
+</annotation>
